@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Neko-Apps
+GenericName=Gestor de Paquetes
+Comment=Centro gráfico de aplicaciones y gestor de paquetes para Neko Void Linux (XBPS, Flatpak, AppImage, xbps-src)
+Exec=neko-apps %F
+Icon=neko-apps
+Terminal=false
+Categories=System;Settings;PackageManager;
+Keywords=package;manager;store;apps;void;xbps;flatpak;appimage;neko;
+MimeType=application/x-xbps;application/x-tar;
+StartupNotify=true
+StartupWMClass=neko-apps

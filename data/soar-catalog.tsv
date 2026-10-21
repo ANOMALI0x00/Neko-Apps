@@ -1,0 +1,26 @@
+# Catálogo Curado de Aplicaciones Portables y AppImages (Soar / PkgForge)
+# Formato: ID [TAB] Nombre [TAB] Descripción [TAB] Categoría [TAB] Icono [TAB] Tamaño
+obsidian	Obsidian	Base de conocimiento personal y notas en Markdown (Soar / AppImage)	Oficina	obsidian	115 MB
+krita	Krita	Estudio de pintura digital e ilustración profesional (Soar / AppImage)	Gráficos	krita	240 MB
+kdenlive	Kdenlive	Editor de vídeo no lineal libre y multipista (Soar / AppImage)	Multimedia	kdenlive	165 MB
+blender	Blender	Suite de creación y animación 3D completa (Soar / AppImage)	Gráficos	blender	315 MB
+inkscape	Inkscape	Editor profesional de gráficos vectoriales (Soar / AppImage)	Gráficos	inkscape	140 MB
+audacity	Audacity	Editor y grabador de audio multipista (Soar / AppImage)	Multimedia	audacity	85 MB
+vlc	VLC Media Player	Reproductor multimedia universal portable (Soar / AppImage)	Multimedia	vlc	95 MB
+neovim	Neovim	Editor de texto hiperextensible basado en Vim (Soar / Portable)	Desarrollo	nvim	35 MB
+helix	Helix	Editor de texto modal moderno en terminal (Soar / Portable)	Desarrollo	utilities-terminal	22 MB
+zellij	Zellij	Multiplexor de espacio de trabajo para terminal (Soar / Portable)	Desarrollo	utilities-terminal	18 MB
+yazi	Yazi	Gestor de archivos ultrarrápido en terminal escrito en Rust (Soar)	Utilidades	system-file-manager	15 MB
+lazygit	Lazygit	Interfaz de terminal simple y rápida para repositorios Git (Soar)	Desarrollo	git	16 MB
+btop	Btop++	Monitor de recursos e interfaz de sistema interactiva (Soar)	Sistema	utilities-system-monitor	12 MB
+fastfetch	Fastfetch	Herramienta rápida de información del sistema (Soar)	Sistema	utilities-terminal	8 MB
+ripgrep	Ripgrep	Herramienta de búsqueda recursiva ultrarrápida (Soar)	Desarrollo	system-search	10 MB
+fd	fd	Alternativa rápida y amigable al comando find (Soar)	Utilidades	system-search	6 MB
+bat	Bat	Clon de cat con resaltado de sintaxis e integración Git (Soar)	Desarrollo	text-x-generic	9 MB
+fzf	fzf	Buscador difuso interactivo de línea de comandos (Soar)	Utilidades	system-search	5 MB
+jq	jq	Procesador de JSON ligero y flexible de línea de comandos (Soar)	Desarrollo	text-x-script	4 MB
+upx	UPX	Empaquetador de ejecutables de alto rendimiento (Soar)	Desarrollo	package-x-generic	2 MB
+localsend	LocalSend	Comparte archivos de forma segura en tu red local (Soar / AppImage)	Internet	network-transmit-receive	55 MB
+freetube	FreeTube	Cliente de escritorio privado para YouTube (Soar / AppImage)	Multimedia	video-x-generic	95 MB
+librewolf	LibreWolf	Navegador web enfocado en privacidad y seguridad (Soar / AppImage)	Internet	web-browser	125 MB
+appimagelauncher	AppImageLauncher	Integrador de paquetes AppImage en el entorno de escritorio (Soar)	Sistema	application-x-executable	15 MB
