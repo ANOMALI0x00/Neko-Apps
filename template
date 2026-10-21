@@ -1,0 +1,12 @@
+# Template file for 'neko-apps'
+pkgname=neko-apps
+version=2.0.0
+revision=1
+build_style=cmake
+hostmakedepends="cmake pkg-config"
+makedepends="gtk+3-devel"
+depends="polkit xtools git curl"
+short_desc="Gestor gráfico nativo de paquetes para Neko Void Linux (C++/GTK3)"
+maintainer="Neko Void Linux <neko@nekovoid.org>"
+license="GPL-3.0-or-later"
+homepage="https://github.com/Neko-Void-Linux/neko-apps"

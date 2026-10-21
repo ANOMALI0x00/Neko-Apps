@@ -1,0 +1,396 @@
+===============================================================================
+                         NEKO-APPS | DOCUMENTACIÓN TÉCNICA
+             Centro de Aplicaciones y Gestor de Paquetes Modular
+                      Para Neko Void Linux (C++17 / GTK 3)
+===============================================================================
+
+ÍNDICE
+-------------------------------------------------------------------------------
+1. INTRODUCCIÓN Y FILOSOFÍA
+2. ARQUITECTURA Y ESQUEMA TÉCNICO
+3. ESTRUCTURA DETALLADA DEL CÓDIGO FUENTE
+4. FLUJOS DE EJECUCIÓN CLAVE
+5. SISTEMA DE TEMAS Y PERSONALIZACIÓN
+6. GUÍA PARA COLABORADORES Y DESARROLLADORES
+7. COMPILACIÓN, PRUEBAS Y EMPAQUETADO (.XBPS)
+8. RESOLUCIÓN DE PROBLEMAS Y PREGUNTAS FRECUENTES
+
+
+===============================================================================
+1. INTRODUCCIÓN Y FILOSOFÍA
+===============================================================================
+
+Neko-Apps es el centro de gestión de software oficial desarrollado para la
+distribución Neko Void Linux. Su propósito principal es unificar en una única
+interfaz gráfica intuitiva, rápida y ligera los distintos ecosistemas de
+paquetes disponibles en el sistema operativo:
+
+  * Paquetes binarios nativos de Void Linux (XBPS).
+  * Aplicaciones sandboxed universales (Flatpak vía Flathub).
+  * Paquetes portables y autónomos (AppImage gestionados con Soar).
+  * Compilación local desde código fuente (xbps-src integrado con Vouru).
+  * Instalación directa por doble clic de archivos locales (.xbps y templates).
+
+Principios de diseño:
+  * Rendimiento nativo: Escrito 100% en C++17 moderno sobre GTK 3 puro.
+    Sin frameworks basados en Chromium/Electron ni WebViews. Consumo de RAM
+    en reposo de aproximadamente 28 MB a 45 MB.
+  * Modularidad real: El código se divide en librerías estáticas independientes
+    compiladas con CMake (neko_core, neko_backends, neko_theme,
+    neko_ui_components, neko_ui_dialogs, neko_ui_views).
+  * Seguridad estricta (Privilege Separation): La interfaz de usuario corre
+    completamente como usuario no privilegiado. Las operaciones que requieren
+    superusuario se despachan a un helper controlado (`neko-apps-helper`)
+    mediante una política declarativa de Polkit (`org.nekovoid.NekoApps.policy`).
+  * Estética Pixel-Art 16-bit: Identidad visual inspirada en temas retro y
+    la paleta Tokyo Night (Matecito-Dark), totalmente personalizable sin
+    necesidad de recompilar el binario C++.
+
+
+===============================================================================
+2. ARQUITECTURA Y ESQUEMA TÉCNICO
+===============================================================================
+
+El siguiente esquema ilustra el flujo de datos y la relación de dependencias
+entre los componentes del sistema:
+
+  +-------------------------------------------------------------------------+
+  |                          CAPA DE USUARIO (GTK 3)                        |
+  |  MainWindow  <--->  GtkStack (Vistas)  <--->  Componentes / Diálogos   |
+  |  (Catálogo,          (Details, Updates,       (NekoAppCard, Terminal,   |
+  |   Buscador)           Manage, Settings)        BottomProgressBar, Dialog)|
+  +-----------------------------------+-------------------------------------+
+                                      |
+                       Callbacks / Signals en Main Thread
+                                      |
+  +-----------------------------------v-------------------------------------+
+  |                       CAPA DE NEGOCIO Y ORÍGENES                        |
+  |                                                                         |
+  |   +-------------------+  +-------------------+  +-------------------+   |
+  |   |    XbpsBackend    |  |  FlatpakBackend   |  |  AppImageBackend  |   |
+  |   | (xbps-query, src) |  | (AppStream, Flath)|  | (Soar CLI, TSV)   |   |
+  |   +---------+---------+  +---------+---------+  +---------+---------+   |
+  |             |                      |                      |             |
+  |             +----------------------+----------------------+             |
+  |                                    |                                    |
+  |                           Backend Interface                             |
+  +------------------------------------+------------------------------------+
+                                       |
+  +------------------------------------v------------------------------------+
+  |                           NÚCLEO (neko_core)                            |
+  |  Transaction: Cola de transacciones, parser de progreso y logs          |
+  |  Proc: Envoltorio POSIX (g_spawn_sync / streaming async)                |
+  |  Config: Lector/Escritor de configuración INI (~/.config/neko-apps)     |
+  |  Package: Estructura unificada de metadatos (ID, Versión, Tamaño...)    |
+  +------------------------------------+------------------------------------+
+                                       |
+              Ejecución con elevación de privilegios (Root)
+                                       |
+  +------------------------------------v------------------------------------+
+  |                     CAPA DE SISTEMA / SEGURIDAD                         |
+  |  Polkit (pkexec) -> /usr/libexec/neko-apps/neko-apps-helper             |
+  |  Comandos autorizados: xbps-install, xbps-remove, xbps-reconfigure,     |
+  |                        xbps-rindex, drivers de hardware, etc.           |
+  +-------------------------------------------------------------------------+
+
+
+===============================================================================
+3. ESTRUCTURA DETALLADA DEL CÓDIGO FUENTE
+===============================================================================
+
+Neko-Apps/
+├── CMakeLists.txt              # Configuración de compilación modular CMake
+├── package-xbps.sh             # Script para compilar y empaquetar en .xbps
+├── template                    # Plantilla de compilación para xbps-src
+├── data/                       # Recursos estáticos del sistema
+│   ├── neko-apps.desktop       # Entrada de escritorio (.desktop)
+│   ├── neko-apps.png / .svg    # Iconos oficiales de la aplicación
+│   ├── org.nekovoid.NekoApps.policy # Reglas y permisos para Polkit
+│   ├── soar-catalog.tsv        # Catálogo precargado de AppImages portables
+│   ├── icons/drivers/          # Iconos para la vista de controladores
+│   └── theme/Matecito-Dark/    # Tema predeterminado (desacoplado de C++)
+│       ├── neko-apps.css       # Hoja de estilos GTK con variables @define-color
+│       ├── palette.conf        # Paleta de colores para la terminal interna
+│       ├── gtk-3.0/            # Estilos base GTK 3
+│       └── assets/pixel/       # Bordes escalonados y tarjetas 16-bit
+├── helper/
+│   └── neko-apps-helper        # Script privilegiado invocado por Polkit
+└── src/
+    ├── main.cpp                # Punto de entrada, argumentos de línea de comandos
+    │
+    ├── core/                   # Librería estática: neko_core
+    │   ├── Package.h           # Entidades canónicas: Package, PkgSource, PkgState
+    │   ├── Config.h / .cpp     # Configuración en ~/.config/neko-apps/config.ini
+    │   ├── Proc.h / .cpp       # Invocación de subprocesos y retorno al main loop
+    │   └── Transaction.h / .cpp# Gestor global de operaciones concurrentes y logs
+    │
+    ├── backends/               # Librería estática: neko_backends
+    │   ├── Backend.h           # Interfaz abstracta común de backends
+    │   ├── XbpsBackend.h / .cpp# Motor nativo XBPS y compilación Vouru
+    │   ├── FlatpakBackend.h / .cpp # Motor Flatpak (Flathub + AppStream XML)
+    │   └── AppImageBackend.h / .cpp# Motor AppImage (gestor Soar CLI)
+    │
+    ├── theme/                  # Librería estática: neko_theme
+    │   ├── ThemeManager.h / .cpp# Carga y hot-reload de CSS y palette.conf
+    │   └── PixelLeafAnimation.h / .cpp # Motor de animación Cairo por fotogramas
+    │
+    └── ui/
+        ├── MainWindow.h / .cpp # Ventana principal, navegación, buscador, debounce
+        │
+        ├── components/         # Librería: neko_ui_components
+        │   ├── NekoAppCard.h / .cpp       # Tarjeta gráfica de cada aplicación
+        │   ├── FloatingTerminal.h / .cpp  # Terminal flotante desplegable
+        │   └── BottomProgressBar.h / .cpp # Barra de progreso inferior y cancelación
+        │
+        ├── views/              # Librería: neko_ui_views
+        │   ├── DetailsView.h / .cpp       # Ficha detallada y selector de origen
+        │   ├── ManageView.h / .cpp        # Paquetes instalados y mantenimiento
+        │   ├── UpdatesView.h / .cpp       # Actualizador de sistema y cálculo de tamaño
+        │   ├── SettingsView.h / .cpp      # Conmutador de orígenes y rutas
+        │   ├── PostInstallView.h / .cpp   # Instalador guiado de drivers (GPU, etc.)
+        │   └── ReposView.h / .cpp         # Mirrors de Void y prueba de latencia
+        │
+        └── dialogs/            # Librería: neko_ui_dialogs
+            ├── LocalPackageDialog.h / .cpp# Instalador de paquetes locales y plantillas
+            ├── CustomRepoDialog.h / .cpp  # Diálogo de repositorios Git de plantillas
+            └── WishListDialog.h / .cpp    # Peticiones comunitarias de software
+
+
+===============================================================================
+4. FLUJOS DE EJECUCIÓN CLAVE
+===============================================================================
+
+4.1 CARGA Y UNIFICACIÓN DEL CATÁLOGO
+-------------------------------------------------------------------------------
+Al iniciar la aplicación, `MainWindow::loadAllCatalogs()` consulta de forma
+asíncrona cada backend activo (`activeBackends`):
+1. Cada backend ejecuta su método `loadCatalog()` en un hilo de trabajo (`std::thread`).
+2. Los resultados se devuelven en el hilo principal (`Proc::runOnMainThread`) y
+   se almacenan en el mapa asociativo unificado `m_catalogMap`.
+3. Deduplicación inteligente (`isSameApplication`): Si una aplicación existe
+   simultáneamente en XBPS, Flatpak y AppImage (por ejemplo, Kdenlive), se
+   muestra una sola tarjeta representativa en la cuadrícula de inicio.
+4. Al abrir la vista de detalles (`DetailsView`), la aplicación detecta todas
+   las versiones disponibles y genera píldoras ("pills") seleccionables para
+   que el usuario elija qué origen instalar o desinstalar libremente.
+
+4.2 CICLO DE VIDA DE UNA TRANSACCIÓN
+-------------------------------------------------------------------------------
+Todas las operaciones que modifican el sistema pasan por `Transaction.cpp`:
+1. Bloqueo de concurrencia: Si ya hay una operación en curso, `Transaction`
+   rechaza peticiones adicionales para evitar bloqueos en la base de datos de XBPS.
+2. Invocación de permisos: Si la acción requiere privilegios elevados (ej. `xbps-install`),
+   se invoca `pkexec /usr/libexec/neko-apps/neko-apps-helper <comando>`.
+3. Transmisión de logs en vivo: La salida estándar (`stdout`) y de error (`stderr`)
+   del subproceso se lee en streaming línea por línea y se envía vía
+   `broadcastLog` hacia `FloatingTerminal`.
+4. Análisis de progreso: Las expresiones regulares en `parseProgressFromLine`
+   detectan porcentajes, velocidades de descarga y etapas (descarga, verificación,
+   extracción, configuración), actualizando en tiempo real la `BottomProgressBar`.
+5. Finalización:
+   - Se notifica a la interfaz gráfica del éxito o fallo.
+   - Se dispara una notificación nativa de escritorio asíncrona mediante
+     `notify-send` (con icono de Neko-Apps o icono de error).
+   - Se actualizan los estados locales de los paquetes afectados.
+
+4.3 GESTIÓN DE PAQUETES LOCALES (.XBPS Y TEMPLATES)
+-------------------------------------------------------------------------------
+Neko-Apps registra manejadores MIME en el sistema operativo:
+  * `application/x-xbps`: Archivos binarios empaquetados localmente.
+  * `application/x-tar` / texto: Archivos `template` de xbps-src.
+Al abrir un archivo desde el gestor de archivos o por terminal:
+1. `MainWindow::onDeepLink` detecta la ruta del archivo recibido en `main()`.
+2. Se abre `LocalPackageDialog`, inspeccionando los metadatos del binario
+   (`xbps-query -R -f <archivo>`) o parseando las variables clave de la plantilla
+   (`pkgname`, `version`, `short_desc`, `homepage`, `license`).
+3. El usuario puede pulsar "Instalar archivo local" o "Compilar plantilla".
+   En el caso de plantillas, Neko-Apps coordina la compilación automática con
+   `vouru` / `xbps-src` y luego instala el binario resultante.
+
+4.4 CENTRO DE ACTUALIZACIONES (UPDATESVIEW)
+-------------------------------------------------------------------------------
+1. Cada backend consulta si hay nuevas versiones de paquetes instalados.
+2. Neko-Apps calcula el tamaño total aproximado de descarga acumulando las
+   cifras reportadas por XBPS y Flatpak.
+3. Se admite formato numérico con punto o coma decimal (`107,3 MB` -> `107.3 MB`).
+4. Al pulsar "Actualizar Todo", los botones individuales de las aplicaciones se
+   desactivan visualmente para evitar estados inconsistentes durante la descarga.
+
+
+===============================================================================
+5. SISTEMA DE TEMAS Y PERSONALIZACIÓN
+===============================================================================
+
+Neko-Apps está diseñado para que diseñadores y usuarios puedan alterar toda la
+apariencia del programa sin tocar una sola línea de C++ ni recompilar el binario.
+
+Los archivos de tema residen en:
+  * Local (desarrollo): `data/theme/Matecito-Dark/`
+  * Sistema (instalado): `/usr/share/neko-apps/theme/Matecito-Dark/`
+
+Archivos clave del tema:
+  1. `neko-apps.css`:
+     Define las reglas CSS aplicadas mediante `GtkCssProvider`. Al inicio del
+     archivo se encuentran las variables semánticas:
+       @define-color neko_bg_main       #1a1b26;
+       @define-color neko_bg_card       #24283b;
+       @define-color neko_text_title    #c0caf5;
+       @define-color neko_accent        #7aa2f7;
+       @define-color neko_btn_primary   #73daca;
+       @define-color neko_danger        #f7768e;
+  2. `palette.conf`:
+     Configura los colores de texto y fondo para la `FloatingTerminal`
+     (formato hexadecimal `#RRGGBB` clave-valor):
+       terminal.background=#16161e
+       terminal.foreground=#c0caf5
+       terminal.accent=#7aa2f7
+       terminal.error=#f7768e
+  3. `assets/pixel/*.png`:
+     Imágenes con bordes pixel-art de 9 sectores utilizadas como fondo de botones,
+     tarjetas y paneles.
+
+
+===============================================================================
+6. GUÍA PARA COLABORADORES Y DESARROLLADORES
+===============================================================================
+
+6.1 CONVENCIONES DE CÓDIGO
+-------------------------------------------------------------------------------
+  * Estándar: C++17 estricto. Se compila con `-Wall -Wextra -Wpedantic`.
+  * Hilos y GTK: La biblioteca GTK 3 no es reentrante ni thread-safe.
+    Cualquier actualización visual que se origine en un `std::thread` DEBE
+    despacharse al hilo principal mediante `Proc::runOnMainThread(callback)`
+    o `g_idle_add`.
+  * Memoria y RAII: Utilizar punteros inteligentes (`std::unique_ptr`,
+    `std::shared_ptr`) para la lógica interna. Para los widgets de GTK, respetar
+    la jerarquía de contenedores de GObject; usar `g_object_ref_sink` o
+    destrucción por contenedor padre según corresponda.
+  * Estilo de nombrado:
+    - Clases y estructuras: `CamelCase` (`Transaction`, `NekoAppCard`).
+    - Miembros de clase: prefijo `m_` (`m_fullCatalog`, `m_alive`).
+    - Funciones y métodos: `camelCase` (`loadCatalog`, `setFinished`).
+    - Constantes y enums: `PascalCase` (`PkgSource::XBPS`, `PkgState::Installed`).
+
+6.2 CÓMO AÑADIR UN NUEVO ORIGEN DE SOFTWARE (BACKEND)
+-------------------------------------------------------------------------------
+Para integrar un nuevo gestor de paquetes (por ejemplo, Nix, Guix o Snap):
+1. Crear `src/backends/MiBackend.h` heredando de `Backend`:
+   ```cpp
+   #pragma once
+   #include "Backend.h"
+
+   class MiBackend : public Backend {
+   public:
+       PkgSource source() const override { return PkgSource::Otro; }
+       bool isAvailable() const override;
+       void loadCatalog(std::function<void(PkgSource, const PackageList&)> onReady) override;
+       void checkUpdates(std::function<void(PkgSource, const PackageList&)> onReady) override;
+       void getDetails(const std::string &pkgId, std::function<void(const Package&)> onReady) override;
+   };
+   ```
+2. Implementar los métodos correspondientes en `src/backends/MiBackend.cpp`,
+   empleando `Proc::capture` o `Proc::executeStreaming` para interactuar con la
+   herramienta CLI.
+3. Registrar la instancia en el constructor de `MainWindow.cpp`:
+   ```cpp
+   m_backends.push_back(std::make_unique<MiBackend>());
+   ```
+4. Actualizar `CMakeLists.txt` en el objetivo `neko_backends` agregando el nuevo
+   archivo fuente.
+
+6.3 CÓMO AÑADIR UNA NUEVA VISTA
+-------------------------------------------------------------------------------
+1. Crear la vista en `src/ui/views/MiNuevaView.h` y `MiNuevaView.cpp`.
+2. Las vistas en Neko-Apps utilizan una función de inicialización estática que
+   devuelve un `GtkWidget*` (generalmente un `GtkBox` o `GtkScrolledWindow`):
+   ```cpp
+   class MiNuevaView {
+   public:
+       static GtkWidget* create(GtkWindow *parentWin);
+   };
+   ```
+3. En `MainWindow::initUi()`, empacar la vista dentro del `m_stack` principal
+   asociada a su nombre de página o pestaña en la barra lateral.
+
+
+===============================================================================
+7. COMPILACIÓN, PRUEBAS Y EMPAQUETADO (.XBPS)
+===============================================================================
+
+7.1 DEPENDENCIAS DE COMPILACIÓN (EN VOID LINUX)
+-------------------------------------------------------------------------------
+Instalar las herramientas de desarrollo y bibliotecas necesarias:
+```bash
+sudo xbps-install -S base-devel cmake ninja git \
+                     gtk+3-devel glib-devel cairo-devel \
+                     polkit libnotify
+```
+
+Dependencias en tiempo de ejecución:
+  * `xbps`: Gestor nativo del sistema.
+  * `flatpak`: Opcional, necesario si el origen Flatpak está habilitado.
+  * `soar`: Opcional, para la descarga de AppImages.
+  * `vouru` / `xbps-src`: Opcional, para compilación de plantillas.
+  * `notify-send`: Para notificaciones nativas en el escritorio.
+
+7.2 COMPILACIÓN LOCAL CON CMAKE
+-------------------------------------------------------------------------------
+```bash
+# Configurar y compilar en modo Release
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+
+# Ejecutar el binario generado
+./build/neko-apps
+
+# Probar en modo post-instalación de controladores:
+./build/neko-apps --post-install
+```
+
+7.3 EMPAQUETADO OFICIAL PARA VOID LINUX
+-------------------------------------------------------------------------------
+El proyecto incluye un script automatizado `package-xbps.sh` que compila el
+árbol completo, prepara la raíz de instalación temporal y genera el binario
+`.xbps` firmado localmente:
+
+```bash
+# Generar el paquete:
+./package-xbps.sh
+
+# Instalar el paquete generado en el sistema local:
+sudo xbps-install --repository=$PWD -f -y neko-apps
+```
+
+
+===============================================================================
+8. RESOLUCIÓN DE PROBLEMAS Y PREGUNTAS FRECUENTES
+===============================================================================
+
+P: Al pulsar "Instalar", la aplicación pide contraseña de root inmediatamente.
+R: Neko-Apps utiliza Polkit (`org.nekovoid.NekoApps.policy`). Si el usuario
+   pertenece al grupo `wheel`, la autenticación se recordará durante la
+   sesión de la transacción para no molestar repetidamente. Si no aparece el
+   diálogo de contraseña, verifica que tengas un agente de autenticación
+   Polkit en ejecución (ej. `polkit-gnome-authentication-agent-1` o `lxpolkit`).
+
+P: Las aplicaciones de Flatpak no muestran tamaño de descarga ("N/D").
+R: Flatpak obtiene los tamaños de descarga a través de los índices locales de
+   los remotos (`flatpak remote-ls --cached --app`). Si acabas de agregar un
+   remoto o nunca has actualizado los metadatos de Flathub, ejecuta una vez
+   `flatpak update --appstream` para poblar el índice local.
+
+P: ¿Dónde se guardan las preferencias del usuario?
+R: En el archivo de texto estándar:
+   `~/.config/neko-apps/config.ini`
+   Allí se almacena el estado de los interruptores (habilitar/deshabilitar Flatpak,
+   AppImage, compilador Vouru) y las rutas de repositorios personalizados.
+
+P: ¿Cómo reportar un error o enviar un parche?
+R: Puedes clonar el repositorio, crear una rama descriptiva de tu cambio
+   (`git checkout -b fix-nombre-del-bug`), asegurarte de que el código compile
+   limpiamente con `cmake --build build` sin ninguna advertencia del compilador,
+   y enviar tu Pull Request o parche para revisión del equipo de Neko Void Linux.
+
+===============================================================================
+Fin del documento | Neko-Apps Team
+===============================================================================

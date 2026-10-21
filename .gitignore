@@ -1,0 +1,21 @@
+# Build directory
+build/
+bin/
+lib/
+
+# XBPS packages and repo data
+*.xbps
+*-repodata
+
+# Temporary and object files
+*.o
+*.a
+*.so
+*.out
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

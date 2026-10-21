@@ -1,0 +1,525 @@
+/* ==========================================================================
+ * Neko-Apps Custom Stylesheet - Tema: Matecito-Dark
+ * ==========================================================================
+ * Este archivo está completamente separado del código C++ de Neko-Apps.
+ * Puedes modificar colores, fuentes, bordes o imágenes aquí mismo sin
+ * necesidad de recompilar la aplicación.
+ * ========================================================================== */
+
+@define-color neko_bg_main       #1e2320;
+@define-color neko_bg_dark       #181c19;
+@define-color neko_bg_terminal   #131715;
+@define-color neko_bg_panel      #222824;
+@define-color neko_bg_card       #272e2a;
+@define-color neko_bg_card_hover #2f3833;
+@define-color neko_border_dark   #0d100e;
+@define-color neko_border_subtle #2e3731;
+@define-color neko_fg_main       #d3cdc3;
+@define-color neko_fg_muted      #949c95;
+@define-color neko_fg_dim        #7a847d;
+@define-color neko_accent        #8da383;
+@define-color neko_accent_light  #adc2a3;
+@define-color neko_danger        #c27979;
+
+window, dialog {
+    background-color: @neko_bg_main;
+    color: @neko_fg_main;
+}
+
+flowbox {
+    background: transparent;
+}
+
+flowboxchild {
+    background: transparent;
+    padding: 0px;
+}
+
+flowboxchild:selected {
+    background: transparent;
+}
+
+entry, entry.search {
+    border-radius: 0px;
+    border: 2px solid @neko_border_dark;
+    background-color: @neko_bg_dark;
+    color: @neko_fg_main;
+    padding: 6px 12px;
+}
+
+entry:focus, entry.search:focus {
+    border-color: @neko_accent;
+    background-color: @neko_bg_main;
+}
+
+.neko-sidebar {
+    background-color: @neko_bg_dark;
+    border-right: 1px solid @neko_border_subtle;
+    padding: 12px 6px;
+}
+
+.neko-user-box {
+    margin-bottom: 12px;
+    padding: 4px;
+}
+
+.neko-user-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: @neko_fg_main;
+}
+
+.neko-user-sub {
+    font-size: 10px;
+    color: @neko_accent;
+    font-weight: 600;
+}
+
+.neko-side-btn {
+    border-radius: 0px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: @neko_fg_muted;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    margin: 2px 0px;
+    transition: all 120ms ease-in-out;
+}
+
+.neko-side-btn:hover {
+    background-color: #242b27;
+    color: @neko_fg_main;
+}
+
+.neko-side-btn:checked {
+    background-color: #2c3530;
+    color: @neko_accent;
+    font-weight: bold;
+    border-left: 3px solid @neko_accent;
+}
+
+.neko-menu-item {
+    border-radius: 0px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: @neko_fg_main;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transition: all 120ms ease;
+}
+
+.neko-menu-item:hover {
+    background-color: #2c3530;
+    color: @neko_accent;
+}
+
+popover, popover.background {
+    background-color: @neko_bg_panel;
+    border: 2px solid @neko_border_dark;
+    border-radius: 0px;
+    padding: 6px;
+    color: @neko_fg_main;
+}
+
+stack, stack > * {
+    background-color: @neko_bg_main;
+}
+
+.neko-topbar {
+    background-color: @neko_bg_dark;
+    border-bottom: 1px solid @neko_border_subtle;
+    padding: 10px 20px;
+}
+
+.neko-hero-banner {
+    border-image: url('{PIXEL_DIR}/card.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background: linear-gradient(135deg, @neko_bg_panel 0%, @neko_bg_card 100%);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+.neko-hero-badge {
+    background-color: rgba(141, 163, 131, 0.20);
+    color: @neko_accent;
+    border: 2px solid @neko_border_dark;
+    border-radius: 0px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.neko-hero-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: @neko_fg_main;
+    margin-top: 6px;
+}
+
+.neko-hero-sub {
+    font-size: 12px;
+    color: @neko_fg_muted;
+    margin-top: 4px;
+}
+
+.neko-box-panel {
+    border-image: url('{PIXEL_DIR}/panel.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_bg_panel;
+    padding: 8px 10px;
+    margin-bottom: 16px;
+}
+
+.neko-card {
+    border-image: url('{PIXEL_DIR}/card.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_bg_card;
+    background-image: none;
+    box-shadow: none;
+    padding: 6px 8px;
+    transition: all 120ms ease-in-out;
+}
+
+.neko-card:hover {
+    border-image: url('{PIXEL_DIR}/card_hover.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    background-color: @neko_bg_card_hover;
+    box-shadow: none;
+}
+
+.neko-card-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: @neko_fg_main;
+}
+
+.neko-card-summary {
+    font-size: 12px;
+    color: @neko_fg_muted;
+}
+
+.neko-btn-primary {
+    border-image: url('{PIXEL_DIR}/btn_primary.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_accent;
+    background-image: none;
+    box-shadow: none;
+    color: @neko_border_dark;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 0px 6px;
+}
+
+.neko-btn-primary:hover {
+    border-image: url('{PIXEL_DIR}/btn_primary_hover.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    background-color: #9eb594;
+    color: @neko_border_dark;
+}
+
+.neko-btn-primary:active {
+    border-image: url('{PIXEL_DIR}/btn_primary_active.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    background-color: #758a6c;
+    color: @neko_border_dark;
+}
+
+.neko-btn-primary:disabled {
+    border-image: url('{PIXEL_DIR}/btn_disabled.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_bg_panel;
+    color: #6c756e;
+    opacity: 0.6;
+}
+
+.neko-btn-secondary {
+    border-image: url('{PIXEL_DIR}/btn_secondary.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: #2c3530;
+    background-image: none;
+    box-shadow: none;
+    color: @neko_fg_main;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 0px 4px;
+}
+
+.neko-btn-secondary:hover {
+    border-image: url('{PIXEL_DIR}/btn_secondary_hover.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    background-color: #36413b;
+    color: #ffffff;
+}
+
+.neko-btn-secondary:active {
+    border-image: url('{PIXEL_DIR}/btn_secondary_active.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    background-color: #202623;
+    color: @neko_fg_main;
+}
+
+.neko-btn-secondary:disabled {
+    border-image: url('{PIXEL_DIR}/btn_disabled.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_bg_panel;
+    color: #6c756e;
+    opacity: 0.6;
+}
+
+.neko-btn-danger {
+    border-image: url('{PIXEL_DIR}/btn_danger.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_danger;
+    background-image: none;
+    box-shadow: none;
+    color: @neko_border_dark;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 0px 4px;
+}
+
+.neko-btn-danger:hover {
+    border-image: url('{PIXEL_DIR}/btn_danger_hover.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    background-color: #d18888;
+    color: @neko_border_dark;
+}
+
+.neko-btn-danger:active {
+    border-image: url('{PIXEL_DIR}/btn_danger_active.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    background-color: #a66060;
+    color: @neko_border_dark;
+}
+
+.neko-btn-danger:disabled {
+    border-image: url('{PIXEL_DIR}/btn_disabled.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: #2b2020;
+    color: #7d6262;
+    opacity: 0.6;
+}
+
+.neko-filter-pill {
+    border-image: url('{PIXEL_DIR}/pill.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_bg_card;
+    color: @neko_fg_main;
+    padding: 0px 2px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.neko-filter-pill:disabled {
+    opacity: 0.50;
+}
+
+.neko-filter-pill:checked {
+    border-image: url('{PIXEL_DIR}/pill_active.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    background-color: #333e36;
+    color: @neko_accent;
+}
+
+.neko-item-row {
+    border-image: url('{PIXEL_DIR}/card.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_bg_card;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+}
+
+.neko-download-panel {
+    border-image: url('{PIXEL_DIR}/panel.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_bg_panel;
+    padding: 6px 8px;
+    margin-top: 6px;
+}
+
+progressbar.neko-progress-bar trough,
+trough {
+    background-color: @neko_bg_dark;
+    border-radius: 0px;
+    border: 2px solid @neko_border_dark;
+    min-height: 8px;
+}
+
+progressbar.neko-progress-bar progress,
+progress {
+    background: linear-gradient(90deg, @neko_accent_light 0%, @neko_accent 100%);
+    border-radius: 0px;
+    min-height: 8px;
+}
+
+.neko-stat-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: @neko_accent;
+}
+
+.neko-empty-card {
+    border-image: url('{PIXEL_DIR}/card.png') 12 14 12 14 / 12px 14px 12px 14px stretch;
+    border-width: 12px 14px 12px 14px;
+    border-style: solid;
+    border-radius: 0px;
+    background-clip: padding-box;
+    background-color: @neko_bg_card;
+    padding: 42px 26px;
+}
+
+.neko-empty-icon-circle {
+    background-color: rgba(141, 163, 131, 0.16);
+    border: 2px solid @neko_accent;
+    border-radius: 0px;
+    padding: 16px;
+    color: @neko_accent;
+}
+
+.neko-empty-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: @neko_fg_main;
+}
+
+.neko-empty-subtitle {
+    font-size: 13px;
+    color: @neko_fg_muted;
+}
+
+.neko-version-badge {
+    background-color: @neko_bg_dark;
+    border: 2px solid @neko_border_dark;
+    border-radius: 0px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-family: monospace;
+    font-weight: 600;
+    color: @neko_accent;
+}
+
+.neko-bottom-container {
+    background-color: @neko_bg_dark;
+    border-top: 2px solid @neko_border_dark;
+}
+
+.neko-bottom-bar {
+    background-color: @neko_bg_dark;
+    padding: 8px 16px;
+    border-top: 1px solid @neko_border_subtle;
+}
+
+.neko-bottom-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: @neko_fg_main;
+}
+
+.neko-bottom-status {
+    font-size: 11px;
+    color: @neko_accent;
+    font-weight: 500;
+}
+
+.neko-floating-terminal-window {
+    background-color: @neko_bg_terminal;
+}
+
+.neko-terminal-header {
+    background-color: @neko_bg_dark;
+    padding: 8px 14px;
+    border-bottom: 1px solid @neko_bg_card;
+}
+
+.neko-terminal-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: @neko_accent;
+}
+
+.neko-terminal-sub {
+    font-size: 10px;
+    color: @neko_fg_dim;
+}
+
+.neko-terminal-view {
+    background-color: @neko_bg_terminal;
+    color: @neko_fg_main;
+    font-family: monospace, "DejaVu Sans Mono", monospace;
+    font-size: 11px;
+    padding: 10px 14px;
+}
+
+button.neko-gear-btn,
+.neko-gear-btn {
+    background: transparent;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    border-image: none;
+    border-radius: 0px;
+    box-shadow: none;
+    padding: 4px 6px;
+    margin: 0px 2px;
+    color: @neko_fg_muted;
+    outline: none;
+    transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+button.neko-gear-btn:hover,
+.neko-gear-btn:hover {
+    background: transparent;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    border-image: none;
+    box-shadow: none;
+    color: @neko_accent;
+    -gtk-icon-transform: rotate(45deg) scale(1.2);
+}
+
+button.neko-gear-btn:active,
+.neko-gear-btn:active {
+    background: transparent;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    border-image: none;
+    box-shadow: none;
+    color: @neko_accent_light;
+    -gtk-icon-transform: rotate(90deg) scale(0.95);
+}
+
