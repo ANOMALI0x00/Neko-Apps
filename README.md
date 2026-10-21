@@ -1,4 +1,4 @@
-# Neko-Apps
+# Neko-Apps 🐾
 
 Centro de aplicaciones y gestor de paquetes para Neko Void Linux. Desarrollado en C++17 y GTK 3 con arquitectura modular y soporte para temas externos.
 
