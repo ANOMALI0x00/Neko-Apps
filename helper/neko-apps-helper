@@ -1,0 +1,423 @@
+#!/bin/bash
+# neko-apps-helper: Helper privilegiado ejecutado via pkexec
+# Provee operaciones seguras de sistema para XBPS y gestión de repositorios en Neko Void
+
+set -euo pipefail
+
+# 1. Asegurar entorno seguro
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+umask 022
+
+# 2. Funciones de validación estricta (Sanitización contra inyección y traversal)
+
+validate_pkg_name() {
+    local pkg="$1"
+    if [[ ! "$pkg" =~ ^[a-zA-Z0-9_#+.-]+$ ]] || [[ "$pkg" == -* ]]; then
+        echo "Error de seguridad: Nombre de paquete inválido o potencialmente peligroso: '$pkg'" >&2
+        return 1
+    fi
+    return 0
+}
+
+validate_conf_name() {
+    local name="$1"
+    if [[ ! "$name" =~ ^[a-zA-Z0-9_.-]+$ ]] || [[ "$name" == -* ]] || [[ "$name" == *".."* ]] || [[ "$name" == *"/"* ]]; then
+        echo "Error de seguridad: Nombre de configuración de repositorio inválido: '$name'" >&2
+        return 1
+    fi
+    return 0
+}
+
+validate_url() {
+    local url="$1"
+    if [[ ! "$url" =~ ^https?://[a-zA-Z0-9.:_/~-]+$ ]]; then
+        echo "Error de seguridad: URL de repositorio inválida: '$url'" >&2
+        return 1
+    fi
+    return 0
+}
+
+validate_repo_path() {
+    local dir="$1"
+    if [ ! -d "$dir" ]; then
+        echo "Error: El directorio de repositorio local no existe: '$dir'" >&2
+        return 1
+    fi
+    return 0
+}
+
+# 3. Comandos administrativos autorizados
+
+cmd_sync() {
+    echo ":: Sincronizando repositorios XBPS..."
+    xbps-install -S
+}
+
+cmd_upgrade() {
+    echo ":: Actualizando el sistema completo..."
+    xbps-install -Syu
+}
+
+cmd_install() {
+    [ $# -gt 0 ] || { echo "Error: Ningún paquete especificado para instalar." >&2; return 1; }
+    for p in "$@"; do
+        validate_pkg_name "$p" || return 1
+    done
+    echo ":: Instalando paquetes: $*"
+    xbps-install -y -- "$@"
+}
+
+cmd_update() {
+    [ $# -gt 0 ] || { echo "Error: Ningún paquete especificado para actualizar." >&2; return 1; }
+    for p in "$@"; do
+        validate_pkg_name "$p" || return 1
+    done
+    echo ":: Actualizando paquetes seleccionados: $*"
+    xbps-install -y -- "$@"
+}
+
+cmd_remove() {
+    [ $# -gt 0 ] || { echo "Error: Ningún paquete especificado para eliminar." >&2; return 1; }
+    for p in "$@"; do
+        validate_pkg_name "$p" || return 1
+    done
+    echo ":: Eliminando paquetes y dependencias huérfanas: $*"
+    xbps-remove -R -y -o -- "$@"
+}
+
+cmd_clean_cache() {
+    echo ":: Limpiando caché obsoleta de XBPS..."
+    xbps-remove -O
+}
+
+cmd_remove_orphans() {
+    echo ":: Limpiando dependencias huérfanas..."
+    xbps-remove -o -y
+}
+
+cmd_reconfigure() {
+    echo ":: Reconfigurando paquetes del sistema..."
+    xbps-reconfigure -a
+}
+
+cmd_install_local() {
+    local repo_path="${1:-}"
+    shift || true
+    validate_repo_path "$repo_path" || return 1
+    if [ "${1:-}" = "--" ]; then shift; fi
+    [ $# -gt 0 ] || { echo "Error: Ningún paquete especificado para instalar localmente." >&2; return 1; }
+    for p in "$@"; do
+        validate_pkg_name "$p" || return 1
+    done
+    echo ":: Instalando paquetes compilados desde $repo_path: $*"
+    if [ -d "$repo_path/nonfree" ]; then
+        xbps-install -y --repository="$repo_path" --repository="$repo_path/nonfree" -- "$@"
+    else
+        xbps-install -y --repository="$repo_path" -- "$@"
+    fi
+}
+
+cmd_install_file() {
+    local file_path="${1:-}"
+    if [ -z "$file_path" ] || [ ! -f "$file_path" ]; then
+        echo "Error: El archivo de paquete no existe: '$file_path'" >&2
+        return 1
+    fi
+
+    local dir_name
+    dir_name="$(cd "$(dirname "$file_path")" && pwd)"
+
+    echo ":: Indexando paquete local con xbps-rindex..."
+    xbps-rindex -a "$file_path" || {
+        echo "Error: Falló al indexar el paquete local con xbps-rindex." >&2
+        return 1
+    }
+
+    local pkgname
+    pkgname="$(tar -xOf "$file_path" ./props.plist 2>/dev/null | grep -A1 '<key>pkgname</key>' | grep '<string>' | sed -E 's/.*<string>(.*)<\/string>.*/\1/' || true)"
+    if [ -z "$pkgname" ]; then
+        local bname
+        bname="$(basename "$file_path")"
+        pkgname="${bname%-*.*.xbps}"
+        pkgname="${pkgname%-*}"
+    fi
+
+    echo ":: Instalando $pkgname desde repositorio local ($dir_name)..."
+    xbps-install -y -f --repository="$dir_name" "$pkgname"
+}
+
+cmd_set_mirror() {
+    local target_url="${1:-}"
+    target_url="${target_url%/}"
+    validate_url "$target_url" || return 1
+
+    echo ":: Configurando espejo oficial a: $target_url"
+    local conf_dir="/etc/xbps.d"
+    mkdir -p "$conf_dir"
+    echo "repository=${target_url}/current" > "$conf_dir/00-repository-main.conf"
+    chmod 644 "$conf_dir/00-repository-main.conf"
+
+    if [ -f "$conf_dir/10-repository-multilib.conf" ] || [ -f "/usr/share/xbps.d/10-repository-multilib.conf" ]; then
+        echo "repository=${target_url}/current/multilib" > "$conf_dir/10-repository-multilib.conf"
+        chmod 644 "$conf_dir/10-repository-multilib.conf"
+    fi
+    if [ -f "$conf_dir/10-repository-multilib-nonfree.conf" ] || [ -f "/usr/share/xbps.d/10-repository-multilib-nonfree.conf" ]; then
+        echo "repository=${target_url}/current/multilib/nonfree" > "$conf_dir/10-repository-multilib-nonfree.conf"
+        chmod 644 "$conf_dir/10-repository-multilib-nonfree.conf"
+    fi
+    if [ -f "$conf_dir/10-repository-nonfree.conf" ] || [ -f "/usr/share/xbps.d/10-repository-nonfree.conf" ]; then
+        echo "repository=${target_url}/current/nonfree" > "$conf_dir/10-repository-nonfree.conf"
+        chmod 644 "$conf_dir/10-repository-nonfree.conf"
+    fi
+
+    if command -v xmirror >/dev/null 2>&1; then
+        xmirror -s "$target_url" 2>/dev/null || true
+    fi
+    xbps-install -S
+}
+
+cmd_add_repo() {
+    local repo_name="${1:-}"
+    local repo_url="${2:-}"
+    validate_conf_name "$repo_name" || return 1
+    validate_url "$repo_url" || return 1
+
+    local conf_dir="/etc/xbps.d"
+    local conf_file="$conf_dir/${repo_name}.conf"
+    mkdir -p "$conf_dir"
+    echo "repository=$repo_url" > "$conf_file"
+    chmod 644 "$conf_file"
+    echo ":: Repositorio guardado en $conf_file"
+    xbps-install -S
+}
+
+cmd_remove_repo() {
+    local conf_name="${1:-}"
+    validate_conf_name "$conf_name" || return 1
+    local conf_file="/etc/xbps.d/$conf_name"
+    if [ -f "$conf_file" ]; then
+        rm -f "$conf_file"
+        echo ":: Repositorio $conf_file eliminado"
+        xbps-install -S
+    else
+        echo "El archivo $conf_file no existe en /etc/xbps.d" >&2
+        return 1
+    fi
+}
+
+cmd_enable_repo() {
+    local conf_name="${1:-}"
+    validate_conf_name "$conf_name" || return 1
+    local conf_file="/etc/xbps.d/$conf_name"
+    if [ -f "$conf_file" ]; then
+        sed -i 's/^[[:space:]]*#[[:space:]]*repository=/repository=/' "$conf_file"
+        echo ":: Repositorio $conf_name habilitado"
+        xbps-install -S
+    else
+        echo "El archivo $conf_file no existe en /etc/xbps.d" >&2
+        return 1
+    fi
+}
+
+cmd_disable_repo() {
+    local conf_name="${1:-}"
+    validate_conf_name "$conf_name" || return 1
+    local conf_file="/etc/xbps.d/$conf_name"
+    if [ -f "$conf_file" ]; then
+        sed -i 's/^[[:space:]]*repository=/#repository=/' "$conf_file"
+        echo ":: Repositorio $conf_name deshabilitado"
+        xbps-install -S
+    else
+        echo "El archivo $conf_file no existe en /etc/xbps.d" >&2
+        return 1
+    fi
+}
+
+cmd_driver() {
+    local driver_id="${1:-}"
+    local tmp_dir=""
+    tmp_dir="$(mktemp -d /tmp/neko-driver-XXXXXX)"
+    chmod 700 "$tmp_dir"
+    cleanup_tmp() {
+        if [ -n "${tmp_dir:-}" ] && [ -d "${tmp_dir:-}" ]; then
+            rm -rf "${tmp_dir:-}"
+        fi
+    }
+    trap cleanup_tmp EXIT HUP INT TERM
+
+    fetch_file() {
+        local url="$1"
+        local dest="$2"
+        if ! curl -fsSL -o "$dest" "$url"; then
+            echo "[!] Error de red: No se pudo descargar el instalador oficial." >&2
+            echo "[!] Comprueba tu conexión a Internet o el acceso a los repositorios de GitHub." >&2
+            return 1
+        fi
+    }
+
+    case "$driver_id" in
+        bluetooth)
+            echo ":: Descargando e instalando soporte Bluetooth modular (Neko Void)..."
+            fetch_file "https://raw.githubusercontent.com/Neko-Void-Linux/bluetooth-enabler/refs/heads/main/install.sh" "$tmp_dir/install.sh"
+            bash "$tmp_dir/install.sh"
+            ;;
+        printer)
+            echo ":: Descargando e instalando soporte de Impresoras modular (Neko Void)..."
+            fetch_file "https://raw.githubusercontent.com/Neko-Void-Linux/printer-enable/refs/heads/main/enable.sh" "$tmp_dir/enable.sh"
+            bash "$tmp_dir/enable.sh"
+            ;;
+        amd)
+            echo ":: Instalando controladores gráficos AMD (Radeon)..."
+            xbps-install -Sy void-repo-multilib void-repo-nonfree || true
+            xbps-install -y mesa-dri mesa-dri-32bit mesa-vulkan-radeon mesa-vulkan-radeon-32bit linux-firmware-amd
+            ;;
+        intel)
+            echo ":: Instalando controladores gráficos Intel..."
+            xbps-install -Sy void-repo-multilib void-repo-nonfree || true
+            xbps-remove -y libva-intel-driver intel-video-accel 2>/dev/null || true
+            xbps-install -y mesa-dri mesa-dri-32bit mesa-vulkan-intel mesa-vulkan-intel-32bit libva-intel-driver-irql linux-firmware-intel intel-media-driver mesa-intel-dri-32bit mesa-intel-dri || \
+            xbps-install -y mesa-dri mesa-dri-32bit mesa-vulkan-intel mesa-vulkan-intel-32bit libva-intel-driver linux-firmware-intel intel-media-driver mesa-intel-dri-32bit mesa-intel-dri
+            ;;
+        nvidia-open)
+            echo ":: Descargando e instalando NVIDIA (Open Kernel Modules)..."
+            fetch_file "https://github.com/Neko-Void-Linux/nvidia-support/archive/refs/heads/main.tar.gz" "$tmp_dir/nvidia-support.tar.gz"
+            tar -xzf "$tmp_dir/nvidia-support.tar.gz" -C "$tmp_dir/"
+            bash "$tmp_dir/nvidia-support-main/install.sh" open
+            ;;
+        nvidia-latest)
+            echo ":: Descargando e instalando NVIDIA (Propietario - Última Versión)..."
+            fetch_file "https://github.com/Neko-Void-Linux/nvidia-support/archive/refs/heads/main.tar.gz" "$tmp_dir/nvidia-support.tar.gz"
+            tar -xzf "$tmp_dir/nvidia-support.tar.gz" -C "$tmp_dir/"
+            bash "$tmp_dir/nvidia-support-main/install.sh" latest
+            ;;
+        nvidia-580)
+            echo ":: Descargando e instalando NVIDIA (Rama 580.xx)..."
+            fetch_file "https://github.com/Neko-Void-Linux/nvidia-support/archive/refs/heads/main.tar.gz" "$tmp_dir/nvidia-support.tar.gz"
+            tar -xzf "$tmp_dir/nvidia-support.tar.gz" -C "$tmp_dir/"
+            bash "$tmp_dir/nvidia-support-main/install.sh" 580
+            ;;
+        nvidia-470)
+            echo ":: Descargando e instalando NVIDIA (Serie 470 Legacy)..."
+            fetch_file "https://github.com/Neko-Void-Linux/nvidia-support/archive/refs/heads/main.tar.gz" "$tmp_dir/nvidia-support.tar.gz"
+            tar -xzf "$tmp_dir/nvidia-support.tar.gz" -C "$tmp_dir/"
+            bash "$tmp_dir/nvidia-support-main/install.sh" 470
+            ;;
+        nvidia-390)
+            echo ":: Descargando e instalando NVIDIA (Serie 390 Legacy)..."
+            fetch_file "https://github.com/Neko-Void-Linux/nvidia-support/archive/refs/heads/main.tar.gz" "$tmp_dir/nvidia-support.tar.gz"
+            tar -xzf "$tmp_dir/nvidia-support.tar.gz" -C "$tmp_dir/"
+            bash "$tmp_dir/nvidia-support-main/install.sh" 390
+            ;;
+        *)
+            echo "Error de seguridad: ID de controlador no reconocido: '$driver_id'" >&2
+            cleanup_tmp
+            return 1
+            ;;
+    esac
+
+    cleanup_tmp
+}
+
+cmd_masterdir_cleanup() {
+    local vp_dir="${1:-}"
+    if [ -z "$vp_dir" ] || [ ! -d "$vp_dir" ]; then
+        echo "Error: Directorio inválido para limpieza de masterdir." >&2
+        return 1
+    fi
+    case "$vp_dir" in
+        */void-packages|*/void-packages/)
+            ;;
+        *)
+            echo "Error de seguridad: Ruta no autorizada para limpieza: '$vp_dir'" >&2
+            return 1
+            ;;
+    esac
+
+    echo ":: Limpiando bloqueos y procesos de masterdir en $vp_dir..."
+    for p in /proc/[0-9]*; do
+        r="$(readlink "$p/root" 2>/dev/null || true)"
+        if [ "$r" = "$vp_dir/masterdir" ]; then
+            kill -9 "${p#/proc/}" 2>/dev/null || true
+        fi
+    done
+    pkill -TERM -f "$vp_dir/masterdir" 2>/dev/null || true
+    pkill -TERM -f "xbps-src" 2>/dev/null || true
+    sleep 0.2
+    pkill -KILL -f "$vp_dir/masterdir" 2>/dev/null || true
+    pkill -KILL -f "xbps-src" 2>/dev/null || true
+    return 0
+}
+
+# 4. Despachador principal de acciones
+
+dispatch() {
+    local action="${1:-}"
+    shift || true
+
+    case "$action" in
+        sync) cmd_sync ;;
+        upgrade) cmd_upgrade ;;
+        install) cmd_install "$@" ;;
+        update) cmd_update "$@" ;;
+        remove) cmd_remove "$@" ;;
+        clean-cache) cmd_clean_cache ;;
+        remove-orphans) cmd_remove_orphans ;;
+        reconfigure) cmd_reconfigure ;;
+        install-local) cmd_install_local "$@" ;;
+        install-file) cmd_install_file "$@" ;;
+        set-mirror) cmd_set_mirror "$@" ;;
+        add-repo) cmd_add_repo "$@" ;;
+        remove-repo) cmd_remove_repo "$@" ;;
+        enable-repo) cmd_enable_repo "$@" ;;
+        disable-repo) cmd_disable_repo "$@" ;;
+        driver) cmd_driver "$@" ;;
+        masterdir-cleanup) cmd_masterdir_cleanup "$@" ;;
+        *)
+            echo "Comando administrativo no reconocido: $action" >&2
+            return 1
+            ;;
+    esac
+}
+
+# 5. Modo Worker Persistente (Mantiene privilegios para la sesión de Neko-Apps sin re-pedir contraseña)
+
+run_worker() {
+    echo "__NEKO_WORKER_READY__"
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="${line%$'\r'}"
+        [ -z "$line" ] && continue
+
+        if [ "$line" = "QUIT" ]; then
+            exit 0
+        fi
+
+        local token="" seq=0 argc=0
+        read -r token seq argc <<< "$line" || true
+        if [ "$token" != "CMD" ]; then
+            continue
+        fi
+
+        local cmd_args=()
+        local i=0
+        for ((i=0; i<argc; i++)); do
+            IFS= read -r arg || break
+            arg="${arg%$'\r'}"
+            cmd_args+=("$arg")
+        done
+
+        local rc=0
+        dispatch "${cmd_args[@]}" || rc=$?
+
+        echo "__NEKO_ERR_DONE_${seq}__" >&2
+        echo "__NEKO_DONE_${seq}__:${rc}"
+    done
+}
+
+# Entrada principal
+ACTION="${1:-}"
+if [ "$ACTION" = "worker" ]; then
+    run_worker
+else
+    shift || true
+    dispatch "$ACTION" "$@"
+fi

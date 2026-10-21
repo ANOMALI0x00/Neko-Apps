@@ -1,0 +1,14 @@
+pkgname=neko-apps
+version=2.0.0
+revision=1
+build_style=cmake
+hostmakedepends="cmake pkg-config"
+makedepends="gtk+3-devel"
+depends="polkit xtools git curl"
+short_desc="Gestor gráfico nativo de paquetes para Neko Void Linux (C++/GTK3)"
+maintainer="ANOMALI0x00"
+license="GPL-3.0-or-later"
+homepage="https://github.com/ANOMALI0x00/Neko-Apps"
+distfiles="https://github.com/ANOMALI0x00/Neko-Apps/archive/refs/tags/2.0.0.tar.gz"
+checksum=a5b80e4e4c77b4adf65133ce2e9f9adc8a586cc8a82dfb324f6a6043f4b597d6
+wrksrc="Neko-Apps-${version}"
