@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--version" || arg == "-v") {
-            std::cout << "Neko-Apps 2.0.0 (GTK3)\n"
+            std::cout << "Neko-Apps 2.1.0 (GTK3)\n"
                       << "Centro gráfico de aplicaciones y gestor de paquetes para Neko Void Linux.\n";
             return 0;
         }
@@ -45,6 +45,10 @@ int main(int argc, char *argv[]) {
         }
         return g_log_writer_default(log_level, fields, n_fields, user_data);
     }, nullptr, nullptr);
+
+    // Forzar GTK_THEME para evitar que compositores o gestores de ventanas (como mangowc,
+    // xsettingsd o gsettings) alteren la apariencia o colores de Neko-Apps al cambiar de tema en el sistema.
+    g_setenv("GTK_THEME", "Adwaita:dark", TRUE);
 
     gtk_init(&argc, &argv);
 

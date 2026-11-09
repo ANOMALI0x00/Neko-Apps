@@ -12,7 +12,7 @@ struct ThemePalette {
 class ThemeManager {
 public:
     static void init();
-    static void applyTheme(bool dark);
+    static void applyTheme(bool dark = true);
     static void loadThemeByName(const std::string &themeName, bool dark = true);
     static const ThemePalette& palette();
     static std::string resolveThemeDir(const std::string &themeName);

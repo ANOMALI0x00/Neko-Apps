@@ -16,7 +16,7 @@ rm -f build/install_manifest.txt
 cmake --install build --prefix "$STAGING/usr"
 
 echo "=== Generando paquete binario XBPS ==="
-xbps-create -A x86_64 -n "neko-apps-2.0.0_1" \
+xbps-create -A x86_64 -n "neko-apps-2.1.0_1" \
     -s "Gestor gráfico nativo de paquetes para Neko Void Linux (C++/GTK3)" \
     -H "https://github.com/Neko-Void-Linux/neko-apps" \
     -l "GPL-3.0-or-later" \
@@ -25,7 +25,7 @@ xbps-create -A x86_64 -n "neko-apps-2.0.0_1" \
     "$STAGING"
 
 echo "=== Registrando índice local del repositorio ==="
-xbps-rindex -a neko-apps-2.0.0_1.x86_64.xbps
+xbps-rindex -a neko-apps-2.1.0_1.x86_64.xbps
 
 rm -rf "$STAGING"
-echo "=== ¡Listo! Paquete creado: neko-apps-2.0.0_1.x86_64.xbps ==="
+echo "=== ¡Listo! Paquete creado: neko-apps-2.1.0_1.x86_64.xbps ==="

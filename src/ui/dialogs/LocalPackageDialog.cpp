@@ -295,26 +295,42 @@ void LocalPackageDialog::show(GtkWindow *parent, const std::string &filePath, st
     gtk_box_pack_start(GTK_BOX(rootBox), statusBox, FALSE, FALSE, 0);
 
     // 3. Information Grid
-    GtkWidget *infoPanel = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    GtkWidget *infoPanel = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_style_context_add_class(gtk_widget_get_style_context(infoPanel), "neko-box-panel");
     gtk_box_pack_start(GTK_BOX(rootBox), infoPanel, FALSE, FALSE, 0);
 
-    auto addInfoRow = [infoPanel](const char *key, const std::string &value) {
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 16);
+    gtk_container_set_border_width(GTK_CONTAINER(grid), 6);
+    gtk_box_pack_start(GTK_BOX(infoPanel), grid, TRUE, TRUE, 0);
+
+    int curRow = 0;
+    auto addInfoRow = [grid, &curRow](const char *key, const std::string &value) {
         if (value.empty()) return;
-        GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+
         GtkWidget *lblKey = gtk_label_new(key);
-        gtk_widget_set_size_request(lblKey, 140, -1);
         gtk_widget_set_halign(lblKey, GTK_ALIGN_START);
+        gtk_widget_set_valign(lblKey, GTK_ALIGN_START);
+        gtk_label_set_xalign(GTK_LABEL(lblKey), 0.0f);
+        gtk_label_set_yalign(GTK_LABEL(lblKey), 0.0f);
+        gtk_widget_set_size_request(lblKey, 130, -1);
         gtk_style_context_add_class(gtk_widget_get_style_context(lblKey), "neko-card-summary");
-        gtk_box_pack_start(GTK_BOX(row), lblKey, FALSE, FALSE, 0);
+        gtk_grid_attach(GTK_GRID(grid), lblKey, 0, curRow, 1, 1);
 
         GtkWidget *lblVal = gtk_label_new(value.c_str());
         gtk_widget_set_halign(lblVal, GTK_ALIGN_START);
+        gtk_widget_set_valign(lblVal, GTK_ALIGN_START);
+        gtk_label_set_xalign(GTK_LABEL(lblVal), 0.0f);
+        gtk_label_set_yalign(GTK_LABEL(lblVal), 0.0f);
         gtk_label_set_line_wrap(GTK_LABEL(lblVal), TRUE);
+        gtk_label_set_line_wrap_mode(GTK_LABEL(lblVal), PANGO_WRAP_WORD_CHAR);
+        gtk_widget_set_hexpand(lblVal, TRUE);
+        gtk_label_set_selectable(GTK_LABEL(lblVal), TRUE);
         gtk_style_context_add_class(gtk_widget_get_style_context(lblVal), "neko-card-title");
-        gtk_box_pack_start(GTK_BOX(row), lblVal, TRUE, TRUE, 0);
+        gtk_grid_attach(GTK_GRID(grid), lblVal, 1, curRow, 1, 1);
 
-        gtk_box_pack_start(GTK_BOX(infoPanel), row, FALSE, FALSE, 0);
+        curRow++;
     };
 
     addInfoRow("Archivo:", meta.filePath);

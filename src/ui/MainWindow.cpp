@@ -460,7 +460,7 @@ void MainWindow::initTopBar() {
         GtkWidget *aboutDlg = gtk_about_dialog_new();
         gtk_window_set_transient_for(GTK_WINDOW(aboutDlg), GTK_WINDOW(m_window));
         gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(aboutDlg), "Neko-Apps");
-        gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(aboutDlg), "2.0.0 (GTK)");
+        gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(aboutDlg), "2.1.0 (GTK)");
         gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(aboutDlg), "Centro gráfico de aplicaciones y gestor de paquetes para Neko Void Linux.");
         gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(aboutDlg), "https://github.com/Neko-Void-Linux/neko-apps");
         std::string iconPath = resolveAppIconPath();
